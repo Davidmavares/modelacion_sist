@@ -131,7 +131,7 @@ class BogotaGraphEditor:
             self.canvas.create_line(x1, y, x2, y, fill="#eee", dash=(2,4))
             self.canvas.create_text(x1-20, y, text=f"C{k}", fill="#aaa")
 
-    # --- INTERACCIÓN ---
+    
     def on_click_izq(self, e):
         n = self.get_cercano(e.x, e.y)
         m = self.modo.get()
@@ -183,7 +183,7 @@ class BogotaGraphEditor:
                 if v==n: del self.destinos[k]
             self.nodo_seleccionado=None; self.dibujar_todo()
 
-    # --- CÁLCULO ---
+    
     def calcular(self):
         self.canvas.delete("ruta")
         self.txt_log.delete("1.0", tk.END)
@@ -218,20 +218,20 @@ class BogotaGraphEditor:
             pts.extend([x+offset, y+offset])
         if len(pts)>2: self.canvas.create_line(pts, fill=color, width=3, arrow=tk.LAST, tags="ruta")
 
-    # --- CARGA AUTOMÁTICA Y ARCHIVOS ---
+    
     def inicializar_grafo_bogota(self):
-        # NOMBRE DEL ARCHIVO POR DEFECTO
+       
         ARCHIVO_DEFECTO = "grafo_bogota.txt"
 
-        # 1. Intentar cargar si existe
+        
         if os.path.exists(ARCHIVO_DEFECTO):
             print(f"Cargando grafo desde {ARCHIVO_DEFECTO}...")
             exito, datos = persistencia.cargar_datos(ARCHIVO_DEFECTO)
             if exito:
                 self.nodos, self.aristas, self.javier_casa, self.andreina_casa, self.destinos = datos
-                return # Salimos si cargó bien
+                return 
 
-        # 2. Si no existe o falló, generar el grafo base (Hardcodeado)
+        
         print("Archivo no encontrado. Generando grafo base...")
         for c in range(cfg.CARRERA_MIN, cfg.CARRERA_MAX+1):
             for k in range(cfg.CALLE_MIN, cfg.CALLE_MAX+1):
@@ -245,7 +245,7 @@ class BogotaGraphEditor:
         self.javier_casa, self.andreina_casa = (14,54), (13,52)
         self.destinos = {"Discoteca The Darkness":(14,50), "Bar La Pasión":(11,54), "Cervecería Mi Rolita":(12,50)}
 
-        # 3. Guardar automáticamente para la próxima vez
+        
         persistencia.guardar_datos(ARCHIVO_DEFECTO, self.nodos, self.aristas, self.javier_casa, self.andreina_casa, self.destinos)
         print(f"Grafo base guardado en {ARCHIVO_DEFECTO}")
 
