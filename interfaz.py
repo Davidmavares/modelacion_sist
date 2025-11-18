@@ -2,6 +2,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, filedialog
 from collections import defaultdict
+import os  
+
+
 import config as cfg
 import logica
 import persistencia
@@ -10,7 +13,7 @@ class BogotaGraphEditor:
     
     def __init__(self, root):
         self.root = root
-        self.root.title("Planificador Rutas Bogotá (Sin Colisiones)")
+        self.root.title("Planificador Rutas Bogotá (Carga Automática)")
         self.root.geometry("1150x900")
         
         self.nodos = set()
@@ -22,11 +25,13 @@ class BogotaGraphEditor:
         self.nodo_seleccionado = None
         
         self.setup_ui()
+        
+        # INTENTA CARGAR AUTOMÁTICAMENTE AL INICIAR
         self.inicializar_grafo_bogota()
         self.dibujar_todo()
 
     def setup_ui(self):
-        # Panel Inferior
+        # --- PANEL INFERIOR ---
         bottom_frame = ttk.Frame(self.root, padding="10", relief="raised")
         bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
         
@@ -38,10 +43,10 @@ class BogotaGraphEditor:
                         font=("Arial", 10, "bold"), command=self.calcular)
         btn.pack(side=tk.LEFT, padx=10)
 
-        # Panel Superior
+        # --- PANEL SUPERIOR ---
         top_frame = ttk.Frame(self.root, padding="5")
         top_frame.pack(side=tk.TOP, fill=tk.X)
-        ttk.Button(top_frame, text="📂 Cargar", command=self.cargar_txt).pack(side=tk.LEFT)
+        ttk.Button(top_frame, text="📂 Cargar Otro", command=self.cargar_txt).pack(side=tk.LEFT)
         ttk.Button(top_frame, text="💾 Guardar", command=self.guardar_txt).pack(side=tk.LEFT)
         ttk.Separator(top_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
         ttk.Radiobutton(top_frame, text="Mover", variable=self.modo, value="MOVER").pack(side=tk.LEFT)
@@ -49,16 +54,17 @@ class BogotaGraphEditor:
         ttk.Radiobutton(top_frame, text="Arista", variable=self.modo, value="ARISTA").pack(side=tk.LEFT)
         ttk.Button(top_frame, text="Borrar", command=self.borrar_seleccionado).pack(side=tk.RIGHT)
 
-        # Log
+        # --- LOG ---
         self.txt_log = tk.Text(self.root, height=7, font=("Consolas", 10), bg="#f1faee")
         self.txt_log.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=5)
 
-        # Canvas
+        # --- CANVAS ---
         self.canvas = tk.Canvas(self.root, bg="white")
         self.canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.canvas.bind("<Button-1>", self.on_click_izq)
         self.canvas.bind("<Button-3>", self.on_click_der)
 
+    # --- MÉTODOS GRÁFICOS ---
     def map_coords(self, carrera, calle):
         x = cfg.PADDING_LEFT + (cfg.CARRERA_MAX - carrera) * cfg.BLOCK_SIZE
         y = cfg.PADDING_Y + (cfg.CALLE_MAX - calle) * cfg.BLOCK_SIZE
@@ -114,7 +120,6 @@ class BogotaGraphEditor:
         self.canvas.create_polygon(poly, fill=cfg.COLOR_CERROS, outline="", tags="bg")
         self.canvas.create_text(xc+30, hc/2, text="CERROS (ESTE)", angle=90, fill="white", font=("Arial", 12, "bold"))
 
-        # Rejilla
         for c in range(cfg.CARRERA_MIN, cfg.CARRERA_MAX + 1):
             x, y1 = self.map_coords(c, cfg.CALLE_MAX)
             _, y2 = self.map_coords(c, cfg.CALLE_MIN)
@@ -126,7 +131,7 @@ class BogotaGraphEditor:
             self.canvas.create_line(x1, y, x2, y, fill="#eee", dash=(2,4))
             self.canvas.create_text(x1-20, y, text=f"C{k}", fill="#aaa")
 
-    # --- Eventos ---
+    # --- INTERACCIÓN ---
     def on_click_izq(self, e):
         n = self.get_cercano(e.x, e.y)
         m = self.modo.get()
@@ -178,13 +183,13 @@ class BogotaGraphEditor:
                 if v==n: del self.destinos[k]
             self.nodo_seleccionado=None; self.dibujar_todo()
 
-    # --- Cálculo ---
+    # --- CÁLCULO ---
     def calcular(self):
         self.canvas.delete("ruta")
         self.txt_log.delete("1.0", tk.END)
         
         if not self.javier_casa or not self.andreina_casa or not self.combo_destinos.get():
-            messagebox.showwarning("Falta info", "Define casas y destino.")
+            messagebox.showwarning("Faltan info", "Define casas y destino.")
             return
         
         dest = self.destinos[self.combo_destinos.get()]
@@ -213,8 +218,21 @@ class BogotaGraphEditor:
             pts.extend([x+offset, y+offset])
         if len(pts)>2: self.canvas.create_line(pts, fill=color, width=3, arrow=tk.LAST, tags="ruta")
 
-    # --- Carga Inicial ---
+    # --- CARGA AUTOMÁTICA Y ARCHIVOS ---
     def inicializar_grafo_bogota(self):
+        # NOMBRE DEL ARCHIVO POR DEFECTO
+        ARCHIVO_DEFECTO = "grafo_bogota.txt"
+
+        # 1. Intentar cargar si existe
+        if os.path.exists(ARCHIVO_DEFECTO):
+            print(f"Cargando grafo desde {ARCHIVO_DEFECTO}...")
+            exito, datos = persistencia.cargar_datos(ARCHIVO_DEFECTO)
+            if exito:
+                self.nodos, self.aristas, self.javier_casa, self.andreina_casa, self.destinos = datos
+                return # Salimos si cargó bien
+
+        # 2. Si no existe o falló, generar el grafo base (Hardcodeado)
+        print("Archivo no encontrado. Generando grafo base...")
         for c in range(cfg.CARRERA_MIN, cfg.CARRERA_MAX+1):
             for k in range(cfg.CALLE_MIN, cfg.CALLE_MAX+1):
                 self.nodos.add((c,k))
@@ -223,12 +241,18 @@ class BogotaGraphEditor:
                     if cfg.CARRERA_MIN<=v[0]<=cfg.CARRERA_MAX and cfg.CALLE_MIN<=v[1]<=cfg.CALLE_MAX:
                         w = 7 if (t=='v' and c in {11,12,13}) else (10 if (t=='h' and k==51) else 5)
                         self.aristas[((c,k),v)] = self.aristas[(v,(c,k))] = w
+        
         self.javier_casa, self.andreina_casa = (14,54), (13,52)
         self.destinos = {"Discoteca The Darkness":(14,50), "Bar La Pasión":(11,54), "Cervecería Mi Rolita":(12,50)}
+
+        # 3. Guardar automáticamente para la próxima vez
+        persistencia.guardar_datos(ARCHIVO_DEFECTO, self.nodos, self.aristas, self.javier_casa, self.andreina_casa, self.destinos)
+        print(f"Grafo base guardado en {ARCHIVO_DEFECTO}")
 
     def guardar_txt(self):
         f = filedialog.asksaveasfilename(defaultextension=".txt")
         if f: persistencia.guardar_datos(f, self.nodos, self.aristas, self.javier_casa, self.andreina_casa, self.destinos)
+    
     def cargar_txt(self):
         f = filedialog.askopenfilename()
         if f:
