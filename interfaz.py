@@ -1,10 +1,7 @@
-
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, filedialog
 from collections import defaultdict
 import os  
-
-
 import config as cfg
 import logica
 import persistencia
@@ -26,12 +23,12 @@ class BogotaGraphEditor:
         
         self.setup_ui()
         
-        # INTENTA CARGAR AUTOMÁTICAMENTE AL INICIAR
+        
         self.inicializar_grafo_bogota()
         self.dibujar_todo()
 
     def setup_ui(self):
-        # --- PANEL INFERIOR ---
+        
         bottom_frame = ttk.Frame(self.root, padding="10", relief="raised")
         bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
         
@@ -43,7 +40,7 @@ class BogotaGraphEditor:
                         font=("Arial", 10, "bold"), command=self.calcular)
         btn.pack(side=tk.LEFT, padx=10)
 
-        # --- PANEL SUPERIOR ---
+        
         top_frame = ttk.Frame(self.root, padding="5")
         top_frame.pack(side=tk.TOP, fill=tk.X)
         ttk.Button(top_frame, text="📂 Cargar Otro", command=self.cargar_txt).pack(side=tk.LEFT)
@@ -54,17 +51,17 @@ class BogotaGraphEditor:
         ttk.Radiobutton(top_frame, text="Arista", variable=self.modo, value="ARISTA").pack(side=tk.LEFT)
         ttk.Button(top_frame, text="Borrar", command=self.borrar_seleccionado).pack(side=tk.RIGHT)
 
-        # --- LOG ---
+        
         self.txt_log = tk.Text(self.root, height=7, font=("Consolas", 10), bg="#f1faee")
         self.txt_log.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=5)
 
-        # --- CANVAS ---
+        
         self.canvas = tk.Canvas(self.root, bg="white")
         self.canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.canvas.bind("<Button-1>", self.on_click_izq)
         self.canvas.bind("<Button-3>", self.on_click_der)
 
-    # --- MÉTODOS GRÁFICOS ---
+   
     def map_coords(self, carrera, calle):
         x = cfg.PADDING_LEFT + (cfg.CARRERA_MAX - carrera) * cfg.BLOCK_SIZE
         y = cfg.PADDING_Y + (cfg.CALLE_MAX - calle) * cfg.BLOCK_SIZE
@@ -79,7 +76,7 @@ class BogotaGraphEditor:
         self.canvas.delete("all")
         self.dibujar_cerros()
         
-        # Aristas
+        
         for (u, v), w in self.aristas.items():
             if u > v: continue
             x1, y1 = self.map_coords(*u)
@@ -89,7 +86,7 @@ class BogotaGraphEditor:
             self.canvas.create_line(x1, y1, x2, y2, fill=c, width=width, capstyle=tk.ROUND)
             self.canvas.create_text((x1+x2)/2, (y1+y2)/2, text=str(w), font=("Arial", 7), fill="#333")
 
-        # Nodos
+        
         for n in self.nodos:
             x, y = self.map_coords(*n)
             fill, out, w = "white", "#333", 1
